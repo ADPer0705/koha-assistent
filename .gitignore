@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Virtual env / uv
+.venv/
+.uv/
+
+# Secrets & local config
+.env
+*.local
+
+# Model cache
+.cache/
+models/
+
+# Logs
+*.log
