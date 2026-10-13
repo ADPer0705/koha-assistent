@@ -1,0 +1,113 @@
+{
+  "_note": "Prototype knowledge base for library-services questions. Content is illustrative and should be reviewed/replaced by library staff before production. Each entry: id, question, answer, keywords, links.",
+  "entries": [
+    {
+      "id": "hours",
+      "question": "What are the library opening hours?",
+      "answer": "The NFSU Central Library is generally open Monday to Saturday, 9:00 AM to 8:00 PM. Timings can change during vacations, examinations and public holidays, so please confirm with the library notice board or the circulation desk before visiting.",
+      "keywords": ["hours", "timing", "timings", "open", "opening", "closed", "closing", "schedule", "time", "sunday", "holiday"],
+      "links": [
+        {"title": "NFSU Library", "url": "https://nfsu.ac.in", "description": "Official university site — check the library section for current timings."}
+      ]
+    },
+    {
+      "id": "membership",
+      "question": "Who can become a member / how do I get library membership?",
+      "answer": "Current students, research scholars, faculty members and authorised staff of NFSU are eligible for library membership. Membership is usually activated with your institutional ID or by applying at the circulation desk. Alumni and external members may be considered under the library's approved rules.",
+      "keywords": ["membership", "member", "join", "register", "registration", "id", "card", "borrower", "eligibility", "alumni"],
+      "links": [
+        {"title": "NFSU Library", "url": "https://nfsu.ac.in", "description": "Membership rules and forms are published on the library page."}
+      ]
+    },
+    {
+      "id": "borrowing",
+      "question": "How many books can I borrow and for how long?",
+      "answer": "Borrowing limits and loan periods depend on your borrower category. Typically students may borrow several books for around 14 days, while research scholars and faculty have higher limits and longer periods. Reference material and rare items are usually for in-library use only. Exact entitlements are listed in the library's circulation rules.",
+      "keywords": ["borrow", "issue", "loan", "renew", "renewal", "how many", "duration", "limit", "return", "due", "books"],
+      "links": [
+        {"title": "NFSU Library", "url": "https://nfsu.ac.in", "description": "See the circulation rules for category-wise borrowing limits."}
+      ]
+    },
+    {
+      "id": "fine",
+      "question": "What is the fine for late return?",
+      "answer": "An overdue charge applies when an item is returned after its due date. The rate depends on your borrower category and the material type. You can renew items (subject to rules) to avoid fines, and any charges are payable at the circulation desk.",
+      "keywords": ["fine", "fines", "overdue", "late", "penalty", "charge", "due date"],
+      "links": [
+        {"title": "NFSU Library", "url": "https://nfsu.ac.in", "description": "Overdue and renewal rules are part of the library circulation policy."}
+      ]
+    },
+    {
+      "id": "eresources",
+      "question": "What electronic resources / databases are available?",
+      "answer": "The library subscribes to major scholarly databases and e-resource packages (for example, legal, forensic-science and multidisciplinary journal collections), along with open-access resources. Access is available through the library's e-resources portal, and a full list of subscriptions is maintained by the library.",
+      "keywords": ["database", "databases", "ejournal", "e-journal", "eresource", "e-resource", "subscription", "online", "journal", "ieee", "springer", "elsevier", "scopus", "web of science"],
+      "links": [
+        {"title": "NFSU Library", "url": "https://nfsu.ac.in", "description": "The library page lists subscribed databases and e-resources."}
+      ]
+    },
+    {
+      "id": "offcampus",
+      "question": "Can I access e-resources from home / off-campus?",
+      "answer": "Authorised users can access subscribed e-resources off-campus through the library's remote-access facility (proxy / ONOS-style authentication) using their institutional credentials. If you cannot log in, contact the library's e-resources help desk.",
+      "keywords": ["remote", "off campus", "off-campus", "home", "proxy", "onos", "vpn", "ezproxy", "login", "outside", "distance"],
+      "links": [
+        {"title": "NFSU Library", "url": "https://nfsu.ac.in", "description": "Remote-access instructions are published by the library."}
+      ]
+    },
+    {
+      "id": "opac",
+      "question": "What is the OPAC and how do I search it?",
+      "answer": "The OPAC (Online Public Access Catalogue) is the searchable catalogue of the library's holdings — books, journals, theses and other materials. You can search by title, author, subject, keyword or ISBN at catalog.nfsu.ac.in. This assistant can run those searches for you in plain language.",
+      "keywords": ["opac", "catalogue", "catalog", "search", "find", "how to search", "webopac", "koha"],
+      "links": [
+        {"title": "Search the NFSU catalogue", "url": "https://catalog.nfsu.ac.in", "description": "KOHA OPAC — search books, journals, theses and more."}
+      ]
+    },
+    {
+      "id": "thesis",
+      "question": "How do I find theses and dissertations?",
+      "answer": "Theses and dissertations submitted at NFSU are catalogued in the OPAC and can be found by keyword or subject search. Some are also available through the institutional repository subject to access rules. Ask the library for help locating a specific thesis.",
+      "keywords": ["thesis", "theses", "dissertation", "dissertations", "shodhganga", "repository", "phd", "research", "project report"],
+      "links": [
+        {"title": "Search the NFSU catalogue", "url": "https://catalog.nfsu.ac.in", "description": "Search theses and dissertations in the OPAC."}
+      ]
+    },
+    {
+      "id": "citation",
+      "question": "Do you offer help with citation and referencing tools?",
+      "answer": "The library provides guidance on referencing styles and citation management tools such as Zotero, Mendeley and EndNote, along with plagiarism-awareness resources. Ask at the reference desk or book a session for training.",
+      "keywords": ["citation", "cite", "reference", "referencing", "zotero", "mendeley", "endnote", "apa", "mla", "plagiarism", "turnitin", "bibliography"],
+      "links": [
+        {"title": "NFSU Library", "url": "https://nfsu.ac.in", "description": "Ask the reference desk for citation tool training."}
+      ]
+    },
+    {
+      "id": "ill",
+      "question": "Can I request a book or article the library does not have?",
+      "answer": "Yes. If an item is not available in the library's collection, you can place an Inter-Library Loan (ILL) or document-delivery request through the library. Requests are subject to availability at partner institutions and any applicable charges.",
+      "keywords": ["interlibrary", "inter-library", "ill", "document delivery", "not available", "request article", "request book", "purchase suggestion"],
+      "links": [
+        {"title": "NFSU Library", "url": "https://nfsu.ac.in", "description": "Contact the library to place an Inter-Library Loan request."}
+      ]
+    },
+    {
+      "id": "contact",
+      "question": "How do I contact the library?",
+      "answer": "You can visit the circulation or reference desk in person. The NFSU campus libraries list their contact details (including email) on the official website. For catalogue and e-resource issues, the library's e-resources help desk is the best point of contact.",
+      "keywords": ["contact", "email", "phone", "help", "desk", "librarian", "staff", "location", "address", "where"],
+      "links": [
+        {"title": "NFSU Library", "url": "https://nfsu.ac.in", "description": "Campus library contact details are on the official site."}
+      ]
+    },
+    {
+      "id": "campuses",
+      "question": "Which campuses does the library serve?",
+      "answer": "NFSU has multiple campuses (for example Gandhinagar, Bhopal, Dharwad and others), each with its own library or library collection. Holdings across locations are visible in the shared OPAC, so you can see where a copy is held.",
+      "keywords": ["campus", "campuses", "branch", "location", "where is", "gandhinagar", "bhopal", "dharwad", "delhi", "goa"],
+      "links": [
+        {"title": "NFSU Library", "url": "https://nfsu.ac.in", "description": "Details of campus libraries are available on the official site."}
+      ]
+    }
+  ]
+}
