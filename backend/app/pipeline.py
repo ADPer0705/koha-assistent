@@ -1,0 +1,133 @@
+"""Single-pass pipeline: guard -> planner -> KOHA -> synthesiser."""
+
+from __future__ import annotations
+
+import logging
+
+from . import faq as faq_kb
+from .config import Settings
+from .guard import PromptGuard
+from .koha import KohaClient, SearchHit
+from .llm import OllamaClient
+from .planner import Plan, plan_query
+from .schemas import ChatRequest, ChatResponse
+from .synthesizer import (
+    Result,
+    blocked_response,
+    synthesise_catalogue,
+    synthesise_faq,
+    synthesise_generic,
+)
+
+log = logging.getLogger("library-assistant.pipeline")
+
+_GENERIC_GUIDANCE = {
+    "research_help": (
+        "The user wants research guidance (databases, citation tools, scholarly "
+        "communication). Give brief, practical pointers and mention that they can "
+        "also ask you to search the catalogue."
+    ),
+    "smalltalk": "Respond warmly and briefly, then invite a library question.",
+    "out_of_scope": (
+        "Politely explain you only help with library resources and services, and "
+        "offer an example of something you can do."
+    ),
+}
+
+
+class Pipeline:
+    def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+        self.llm = OllamaClient(
+            settings.ollama_host, settings.ollama_model, timeout=settings.ollama_timeout
+        )
+        self.koha = KohaClient(
+            settings.koha_base,
+            backend=settings.search_backend,
+            api_user=settings.koha_api_user,
+            api_pass=settings.koha_api_pass,
+            timeout=settings.koha_timeout,
+            max_results=settings.max_results,
+        )
+        self.guard = PromptGuard(
+            enabled=settings.guard_enabled,
+            model_name=settings.guard_model,
+            threshold=settings.guard_threshold,
+        )
+
+    async def warmup(self) -> None:
+        if self.guard.enabled:
+            await self.guard.load()
+
+    async def handle(self, request: ChatRequest) -> ChatResponse:
+        query = request.query.strip()
+
+        # 1. Prompt-injection guard.
+        verdict = await self.guard.check(query)
+        if not verdict.allowed:
+            log.info("blocked query (%s): %r", verdict.reason, query)
+            return blocked_response(query, verdict.reason)
+
+        # 2. Plan.
+        plan = await plan_query(self.llm, query)
+        log.info(
+            "plan intent=%s index=%s term=%r (fallback=%s)",
+            plan.intent,
+            plan.index,
+            plan.search_term,
+            plan.used_fallback,
+        )
+
+        # 3. Route.
+        if plan.intent == "faq":
+            entries = faq_kb.find_entries(query)
+            return await synthesise_faq(self.llm, query, entries)
+
+        if plan.intent in _GENERIC_GUIDANCE:
+            return await synthesise_generic(
+                self.llm, query, plan.intent, _GENERIC_GUIDANCE[plan.intent]
+            )
+
+        # catalogue_search (default)
+        return await self._catalogue(query, plan)
+
+    async def _catalogue(self, query: str, plan: Plan) -> ChatResponse:
+        hits, total = await self.koha.search(plan.search_term, plan.index)
+
+        # One-shot retry with planner-provided alternatives if empty.
+        if not hits:
+            for alt in plan.alternatives:
+                hits, total = await self.koha.search(alt, plan.index)
+                if hits:
+                    log.info("alternative %r returned %d hits", alt, len(hits))
+                    break
+
+        hits = hits[: self.settings.max_results]
+        enriched = await self.koha.enrich(hits)
+
+        results: list[Result] = []
+        for hit, details, avail in enriched:
+            results.append(self._to_result(hit, details, avail))
+
+        search_url = self.koha.opac_search_url(plan.search_term, plan.index)
+        return await synthesise_catalogue(
+            self.llm, query, plan, results, total, search_url
+        )
+
+    @staticmethod
+    def _to_result(hit: SearchHit, details, avail) -> Result:
+        biblio_id = hit.biblio_id or 0
+        return Result(
+            biblio_id=biblio_id,
+            title=(details.title if details and details.title else hit.title)
+            or f"Catalogue record {biblio_id}",
+            author=details.author if details else None,
+            publisher=details.publisher if details else None,
+            year=details.year if details else None,
+            isbn=(details.isbn if details else None) or hit.isbn,
+            url=(details.url if details and details.url else hit.url),
+            total_items=avail.total_items if avail else 0,
+            available=avail.available if avail else 0,
+            libraries=avail.libraries if avail else [],
+            callnumbers=avail.callnumbers if avail else [],
+        )
