@@ -49,7 +49,14 @@ NFSU KOHA OPAC and returns a summary plus resource links as JSON.
 
 ## Setup
 
-From `backend/`:
+From `backend/`, the fastest path is the setup script:
+
+```bash
+./scripts/setup.sh              # base deps + Prompt Guard (CPU torch)
+WITH_GUARD=0 ./scripts/setup.sh # skip the optional guard model
+```
+
+Or install manually:
 
 ```bash
 uv venv --python 3.12
