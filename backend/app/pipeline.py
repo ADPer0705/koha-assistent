@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 
 from . import faq as faq_kb
 from .config import Settings
@@ -35,12 +36,67 @@ _GENERIC_GUIDANCE = {
     ),
 }
 
+# Filler words that hurt KOHA's AND-based keyword search.
+_STOPWORDS = {
+    "find", "show", "search", "get", "give", "list", "looking", "look", "need",
+    "want", "please", "me", "all", "any", "some", "the", "a", "an", "of", "on",
+    "in", "for", "about", "related", "regarding", "with", "by", "to", "and",
+    "books", "book", "resources", "resource", "publications", "publication",
+    "materials", "material", "items", "item", "available", "do", "we", "have",
+    "is", "are", "there",
+}
+
+
+def _significant_tokens(term: str) -> list[str]:
+    tokens = [t for t in re.split(r"[^0-9A-Za-z]+", term) if t]
+    sig = [t for t in tokens if t.lower() not in _STOPWORDS and len(t) > 1]
+    return sig or tokens
+
+
+def strip_stopwords(term: str) -> str:
+    sig = _significant_tokens(term)
+    return " ".join(sig)
+
+
+def _query_candidates(plan: Plan) -> list[str]:
+    """Ordered queries to try, from most to least specific."""
+    seen: set[str] = set()
+    out: list[str] = []
+
+    def add(t: str | None) -> None:
+        t = (t or "").strip()
+        if t and t.lower() not in seen:
+            seen.add(t.lower())
+            out.append(t)
+
+    add(plan.search_term)
+    stripped = strip_stopwords(plan.search_term)
+    add(stripped if stripped != plan.search_term else None)
+
+    # KOHA ANDs terms, so for field searches fall back to OR then to single terms.
+    # (Skipped for author and ISBN, where OR would produce nonsense.)
+    if plan.index not in ("au", "isbn"):
+        tokens = _significant_tokens(plan.search_term)
+        if len(tokens) >= 2:
+            add(" OR ".join(tokens))
+        for tok in sorted(tokens, key=len, reverse=True):
+            add(tok)
+
+    for alt in plan.alternatives:
+        add(alt)
+        add(strip_stopwords(alt))
+
+    return out
+
 
 class Pipeline:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self.llm = OllamaClient(
-            settings.ollama_host, settings.ollama_model, timeout=settings.ollama_timeout
+            settings.ollama_host,
+            settings.ollama_model,
+            timeout=settings.ollama_timeout,
+            think=settings.ollama_think,
         )
         self.koha = KohaClient(
             settings.koha_base,
@@ -107,15 +163,17 @@ class Pipeline:
         return await self._catalogue(query, plan)
 
     async def _catalogue(self, query: str, plan: Plan) -> ChatResponse:
-        hits, total = await self.koha.search(plan.search_term, plan.index)
+        hits: list = []
+        total = 0
+        used_term = plan.search_term
 
-        # One-shot retry with planner-provided alternatives if empty.
-        if not hits:
-            for alt in plan.alternatives:
-                hits, total = await self.koha.search(alt, plan.index)
-                if hits:
-                    log.info("alternative %r returned %d hits", alt, len(hits))
-                    break
+        for term in _query_candidates(plan):
+            hits, total = await self.koha.search(term, plan.index)
+            if hits:
+                used_term = term
+                if term != plan.search_term:
+                    log.info("relaxed query to %r -> %d hits", term, len(hits))
+                break
 
         hits = hits[: self.settings.max_results]
         enriched = await self.koha.enrich(hits)
@@ -124,7 +182,7 @@ class Pipeline:
         for hit, details, avail in enriched:
             results.append(self._to_result(hit, details, avail))
 
-        search_url = self.koha.opac_search_url(plan.search_term, plan.index)
+        search_url = self.koha.opac_search_url(used_term, plan.index)
         return await synthesise_catalogue(
             self.llm, query, plan, results, total, search_url
         )

@@ -12,10 +12,18 @@ log = logging.getLogger("library-assistant.llm")
 
 
 class OllamaClient:
-    def __init__(self, host: str, model: str, *, timeout: float = 120.0) -> None:
+    def __init__(
+        self,
+        host: str,
+        model: str,
+        *,
+        timeout: float = 120.0,
+        think: bool | None = False,
+    ) -> None:
         self.host = host.rstrip("/")
         self.model = model
         self.timeout = timeout
+        self.think = think
 
     async def chat(
         self,
@@ -33,12 +41,20 @@ class OllamaClient:
             "keep_alive": keep_alive,
             "options": {"temperature": temperature, "num_predict": num_predict},
         }
+        if self.think is not None:
+            # Disable long reasoning traces for thinking models (qwen3.x etc.).
+            payload["think"] = self.think
         if schema is not None:
             # Ollama constrains output to this JSON schema.
             payload["format"] = schema
 
+        url = f"{self.host}/api/chat"
         async with httpx.AsyncClient(timeout=self.timeout) as c:
-            resp = await c.post(f"{self.host}/api/chat", json=payload)
+            resp = await c.post(url, json=payload)
+            if resp.status_code >= 400 and "think" in payload:
+                # Some models don't support the think flag; retry without it.
+                payload.pop("think", None)
+                resp = await c.post(url, json=payload)
             resp.raise_for_status()
             data = resp.json()
         return (data.get("message") or {}).get("content", "")

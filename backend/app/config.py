@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     ollama_host: str = "http://localhost:11434"
     ollama_model: str = "qwen3.5:9b"
     ollama_timeout: float = 120.0
+    # Disable reasoning traces for thinking models (qwen3.x). Set to true to allow.
+    ollama_think: bool = False
 
     # ---- Guard ----
     guard_enabled: bool = True

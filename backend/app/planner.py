@@ -53,14 +53,15 @@ scholarly communication, or research strategy (no specific item search).
   * "out_of_scope" - anything unrelated to the library.
 
 - index: which KOHA search index to use for a catalogue search:
-  * "kw" keyword (default)
-  * "ti" title
-  * "au" author
-  * "su" subject
-  * "isbn" ISBN
-  * "pb" publisher
+  * "kw" keyword (default — use for general topic searches like "books on X")
+  * "ti" title (only when the user explicitly refers to a title)
+  * "au" author (only for an author name)
+  * "su" subject (only when the user asks about a subject heading)
+  * "isbn" ISBN (only for an ISBN number)
+  * "pb" publisher (only for a publisher name)
 
 Rules:
+- Prefer "kw" unless the user clearly asks for a specific field above.
 - search_term: the core terms to search, WITHOUT filler words. Do not include \
 the field name (e.g. drop the word "author" when index is "au"). Keep it short \
 (2-6 words). Fix obvious spelling mistakes.
