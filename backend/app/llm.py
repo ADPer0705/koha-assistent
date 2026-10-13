@@ -23,12 +23,15 @@ class OllamaClient:
         *,
         schema: dict[str, Any] | None = None,
         temperature: float = 0.1,
+        num_predict: int = 256,
+        keep_alive: str = "30m",
     ) -> str:
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
             "stream": False,
-            "options": {"temperature": temperature},
+            "keep_alive": keep_alive,
+            "options": {"temperature": temperature, "num_predict": num_predict},
         }
         if schema is not None:
             # Ollama constrains output to this JSON schema.
@@ -46,8 +49,14 @@ class OllamaClient:
         schema: dict[str, Any],
         *,
         temperature: float = 0.1,
+        num_predict: int = 256,
     ) -> dict[str, Any]:
-        content = await self.chat(messages, schema=schema, temperature=temperature)
+        content = await self.chat(
+            messages,
+            schema=schema,
+            temperature=temperature,
+            num_predict=num_predict,
+        )
         try:
             return json.loads(content)
         except json.JSONDecodeError:

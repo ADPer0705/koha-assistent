@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from . import faq as faq_kb
@@ -56,11 +57,25 @@ class Pipeline:
         )
 
     async def warmup(self) -> None:
+        """Load the guard and preload the LLM (best effort, non-fatal)."""
+        tasks = [self._warm_llm()]
         if self.guard.enabled:
-            await self.guard.load()
+            tasks.append(self.guard.load())
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for r in results:
+            if isinstance(r, Exception):
+                log.debug("warmup task failed: %s", r)
+
+    async def _warm_llm(self) -> None:
+        try:
+            await self.llm.chat(
+                [{"role": "user", "content": "hi"}], num_predict=1, keep_alive="30m"
+            )
+        except Exception as exc:
+            log.debug("LLM warmup failed (will retry on demand): %s", exc)
 
     async def handle(self, request: ChatRequest) -> ChatResponse:
-        query = request.query.strip()
+        query = request.user_text
 
         # 1. Prompt-injection guard.
         verdict = await self.guard.check(query)

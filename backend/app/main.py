@@ -3,10 +3,18 @@
 Pipeline (single pass, no agentic loop):
 
     guard -> planner -> KOHA client -> synthesiser -> JSON
+
+Two chat endpoints are exposed:
+
+* ``POST /``          – the browser-extension contract
+  (``{"text": ...}`` → ``{"text_summary": ..., "sources": [...]}``).
+* ``POST /api/chat``  – the richer contract
+  (``{"query"|"text": ...}`` → ``{summary, links, suggestions, meta}``).
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -19,9 +27,12 @@ from .pipeline import Pipeline
 from .schemas import (
     ChatRequest,
     ChatResponse,
+    FrontendResponse,
     HealthResponse,
+    Meta,
     PublicConfig,
 )
+from .synthesizer import to_frontend
 
 settings = get_settings()
 
@@ -41,11 +52,8 @@ async def lifespan(app: FastAPI):
         settings.ollama_model,
         settings.guard_enabled,
     )
-    if settings.guard_enabled:
-        # Warm the guard in the background so the first request isn't slow.
-        import asyncio
-
-        asyncio.create_task(app.state.pipeline.warmup())
+    # Warm the guard and the LLM in the background so the first request is fast.
+    asyncio.create_task(app.state.pipeline.warmup())
     yield
 
 
@@ -80,6 +88,23 @@ SUGGESTED_QUESTIONS = [
 ]
 
 
+async def _run(request: ChatRequest) -> ChatResponse:
+    if not settings.chatbot_enabled:
+        return ChatResponse(
+            query=request.user_text,
+            intent="out_of_scope",
+            summary=(
+                "The library assistant is temporarily unavailable. Please use the "
+                "classic catalogue search."
+            ),
+            links=[],
+            suggestions=[],
+            meta=Meta(source="disabled"),
+        )
+    pipeline: Pipeline = app.state.pipeline
+    return await pipeline.handle(request)
+
+
 @app.get("/api/health", response_model=HealthResponse, tags=["system"])
 async def health() -> HealthResponse:
     pipeline: Pipeline = app.state.pipeline
@@ -106,15 +131,13 @@ async def public_config() -> PublicConfig:
     )
 
 
+@app.post("/", response_model=FrontendResponse, tags=["chat"])
+async def chat_root(request: ChatRequest) -> FrontendResponse:
+    """Browser-extension endpoint: ``{text}`` -> ``{text_summary, sources}``."""
+    return to_frontend(await _run(request))
+
+
 @app.post("/api/chat", response_model=ChatResponse, tags=["chat"])
 async def chat(request: ChatRequest) -> ChatResponse:
-    if not settings.chatbot_enabled:
-        return ChatResponse(
-            query=request.query,
-            intent="out_of_scope",
-            summary="The library assistant is temporarily unavailable. Please use the catalogue search.",
-            links=[],
-            suggestions=[],
-        )
-    pipeline: Pipeline = app.state.pipeline
-    return await pipeline.handle(request)
+    """Rich endpoint used by the reference widget and tests."""
+    return await _run(request)

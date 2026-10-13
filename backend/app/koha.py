@@ -221,7 +221,9 @@ class KohaClient:
         except Exception as exc:
             log.debug("describe(%s) failed: %s", biblio_id, exc)
             return None
-        return self._parse_marc(biblio_id, data)
+        details = self._parse_marc(biblio_id, data)
+        details.url = self.biblio_url(biblio_id)
+        return details
 
     @staticmethod
     def _parse_marc(biblio_id: int, data: dict) -> BiblioDetails:

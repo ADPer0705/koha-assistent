@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from . import faq as faq_kb
 from .llm import OllamaClient
 from .planner import Plan
-from .schemas import ChatResponse, Link, Meta
+from .schemas import ChatResponse, FrontendResponse, Link, Meta, Source
 
 log = logging.getLogger("library-assistant.synth")
 
@@ -249,3 +249,32 @@ async def synthesise_generic(
         suggestions=suggestions,
         meta=Meta(source="llm"),
     )
+
+
+def _https_or_none(url: str | None) -> str | None:
+    """The browser extension only renders HTTPS links."""
+    if url and url.startswith("https://"):
+        return url
+    return None
+
+
+def to_frontend(resp: ChatResponse) -> FrontendResponse:
+    """Map the rich response to the browser-extension contract.
+
+    The extension renders only ``sources[].description`` (and an optional
+    ``url``), so the source description is self-contained: it begins with the
+    resource title.
+    """
+    sources: list[Source] = []
+    for link in resp.links:
+        desc = link.title
+        if link.description:
+            desc = f"{link.title} — {link.description}"
+        sources.append(
+            Source(
+                url=_https_or_none(link.url),
+                description=desc.strip(),
+                title=link.title,
+            )
+        )
+    return FrontendResponse(text_summary=resp.summary, sources=sources)

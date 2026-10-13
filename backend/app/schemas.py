@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 Intent = Literal[
     "catalogue_search",
@@ -16,12 +16,27 @@ Intent = Literal[
 
 
 class ChatRequest(BaseModel):
-    """Input from the OPAC widget: a single natural-language query."""
+    """Input from the OPAC widget.
 
-    query: str = Field(..., min_length=1, max_length=2000)
+    Accepts either ``{"text": ...}`` (the browser-extension contract) or
+    ``{"query": ...}`` (the richer internal contract).
+    """
+
+    text: str | None = Field(default=None, max_length=2000)
+    query: str | None = Field(default=None, max_length=2000)
     session_id: str | None = Field(
         default=None, description="Optional client session identifier (analytics only)."
     )
+
+    @model_validator(mode="after")
+    def _require_user_text(self) -> "ChatRequest":
+        if not (self.text or self.query or "").strip():
+            raise ValueError("either 'text' or 'query' must be a non-empty string")
+        return self
+
+    @property
+    def user_text(self) -> str:
+        return (self.text or self.query or "").strip()
 
 
 class Link(BaseModel):
@@ -57,6 +72,21 @@ class PublicConfig(BaseModel):
     version: str
     welcome_message: str | None = None
     suggested_questions: list[str] = Field(default_factory=list)
+
+
+class Source(BaseModel):
+    """A source entry in the browser-extension response contract."""
+
+    url: str | None = None
+    description: str = ""
+    title: str | None = None
+
+
+class FrontendResponse(BaseModel):
+    """Exact response shape expected by the browser-extension frontend."""
+
+    text_summary: str
+    sources: list[Source] = Field(default_factory=list)
 
 
 class HealthResponse(BaseModel):
